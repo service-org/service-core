@@ -37,7 +37,7 @@ class AsLazyProperty(object):
 class AsSingletonCls(object):
     """ 单例模式修饰类 """
 
-    def __init__(self, klass: t.Type[type]) -> None:
+    def __init__(self, klass: t.Type) -> None:
         """ 初始化实例
 
         @param klass: 待修饰类
