@@ -21,8 +21,8 @@ class Dependency(Extension):
         @param skip_loaded: 跳过加载
         """
         super(Dependency, self).__init__(*args, **kwargs)
-        self.skip_inject = kwargs.pop('skip_inject', False)
-        self.skip_loaded = kwargs.pop('skip_loaded', False)
+        self.skip_inject = kwargs.get('skip_inject', False)
+        self.skip_loaded = kwargs.get('skip_loaded', False)
 
     def __repr__(self) -> t.Text:
         name = super(Dependency, self).__repr__()
