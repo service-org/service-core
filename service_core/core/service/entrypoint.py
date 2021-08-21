@@ -20,8 +20,8 @@ class Entrypoint(Extension):
         @param exec_timing: 执行限时
         """
         super(Entrypoint, self).__init__(*args, **kwargs)
-        # 设置协程的执行时间,默认1秒,防止协程长时间驻留而内存溢出
-        self.exec_timing = kwargs.pop('exec_timing', 1)
+        # 支持设置协程的执行时间,防止协程长时间驻留导致内存溢出
+        self.exec_timing = kwargs.pop('exec_timing', None)
 
     def __repr__(self) -> t.Text:
         name = super(Entrypoint, self).__repr__()
