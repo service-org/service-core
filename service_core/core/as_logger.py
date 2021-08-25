@@ -33,6 +33,7 @@ def as_timing_logger(logger: Logger, level: t.Optional[int] = None) -> t.Callabl
         """
         # fix log某些非字符串对象时%s的bug
         msg = get_obj_string_repr(msg)
+        msg = msg.replace('%', r'%%')
         start = time.time()
         yield  # 首先记录当前时间, next(...)
         msg = f'{msg} in %s'
