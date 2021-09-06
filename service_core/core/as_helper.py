@@ -9,6 +9,7 @@ import inspect
 import typing as t
 
 from logging import getLogger
+from pydantic import ValidationError
 
 logger = getLogger(__name__)
 
@@ -27,6 +28,10 @@ def get_obj_string_repr(obj: t.Any) -> t.Text:
     obj_type = bytes
     if isinstance(obj, obj_type):
         return obj.decode('utf-8')
+    # 当对象为验证异常时
+    obj_type = ValidationError
+    if isinstance(obj, obj_type):
+        return obj.json()
     # 当对象为异常类对象
     obj_type = Exception
     if not isinstance(obj, obj_type):

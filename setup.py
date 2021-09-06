@@ -19,8 +19,8 @@ setup(
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=['test', 'test.*']),
     install_requires=[
-        'typing-extensions==3.10.0.0',
         'eventlet==0.31.1', 'PyYAML==5.4.1',
+        'typing-extensions==3.10.0.0', 'pydantic==1.8.2'
     ],
     classifiers=[
         'Typing :: Typed',
