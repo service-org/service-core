@@ -31,7 +31,7 @@ def get_obj_string_repr(obj: t.Any) -> t.Text:
     # 当对象为验证异常时
     obj_type = ValidationError
     if isinstance(obj, obj_type):
-        return obj.json()
+        return obj.errors()
     # 当对象为异常类对象
     obj_type = Exception
     if not isinstance(obj, obj_type):
