@@ -9,6 +9,7 @@ import typing as t
 from inspect import getmembers
 from service_core.core.as_router import ApiRouter
 from service_core.core.decorator import AsLazyProperty
+from service_core.core.storage import green_thread_local
 from service_core.core.as_helper import get_accessible_host
 from service_core.core.as_helper import get_accessible_port
 
@@ -41,8 +42,8 @@ class Service(object):
         @param item: 属性名称
         @return: t.Ant
         """
-        green_local = self.container.green_local
-        if hasattr(green_local, item): return getattr(green_local, item)
+        if hasattr(green_thread_local, item):
+            return getattr(green_thread_local, item)
         return object.__getattribute__(self, item)
 
     def include_router(self, router: ApiRouter) -> None:

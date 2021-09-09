@@ -18,8 +18,8 @@ from greenlet import GreenletExit
 from eventlet.greenpool import GreenPool
 from eventlet.greenthread import GreenThread
 from service_core.exception import ReachTiming
-from eventlet.corolocal import local as green_local
 from service_core.constants import WORKERS_CONFIG_KEY
+from service_core.core.storage import green_thread_local
 from service_core.constants import DEFAULT_WORKERS_NUMBER
 
 from .service import Service
@@ -56,8 +56,6 @@ class ServiceContainer(object):
         self.worker_threads = {}
         # 分离协程 - 独立于协程池
         self.splits_threads = {}
-        # 协程存储 - 协程安全存储
-        self.green_local = green_local()
         # 池子大小 - 防止内存溢出
         key, default = WORKERS_CONFIG_KEY, DEFAULT_WORKERS_NUMBER
         worker_pool_size = config.get(key, default=default)
@@ -276,7 +274,7 @@ class ServiceContainer(object):
         # 耗时记录 - 等待到执行完毕时输出耗时
         next(generator)
         # 依赖清理 - 清理掉当前协程的依赖存储
-        self.green_local._local__greens = {}
+        green_thread_local._local__greens = {}
         # 垃圾回收 - 防止大量请求时的内存溢出
         self.worker_threads.pop(gt, None)
 
@@ -286,7 +284,7 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        for d in self.no_skip_inject_dependencies: setattr(self.green_local, d.object_name, d.get_instance(context))
+        for d in self.no_skip_inject_dependencies: setattr(green_thread_local, d.object_name, d.get_instance(context))
 
     def _call_worker_setups(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用载入方法
