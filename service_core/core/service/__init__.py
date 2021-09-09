@@ -43,7 +43,7 @@ class Service(object):
         """
         green_local = self.container.green_local
         if hasattr(green_local, item): return getattr(green_local, item)
-        return super(Service, self).__getattribute__(item)
+        return object.__getattribute__(self, item)
 
     def include_router(self, router: ApiRouter) -> None:
         """ 加载汇总多文件中的路由
