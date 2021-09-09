@@ -33,6 +33,18 @@ class Service(object):
         """
         pass
 
+    def __getattribute__(self, item: t.Text) -> t.Any:
+        """ 协程安全的获取依赖对象
+
+        解决协程竞争覆盖苏醒值问题
+
+        @param item: 属性名称
+        @return: t.Ant
+        """
+        green_local = self.container.green_local
+        if hasattr(green_local, item): return getattr(green_local, item)
+        return super(Service, self).__getattribute__(item)
+
     def include_router(self, router: ApiRouter) -> None:
         """ 加载汇总多文件中的路由
 
