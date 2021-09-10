@@ -274,9 +274,13 @@ class ServiceContainer(object):
         # 耗时记录 - 等待到执行完毕时输出耗时
         next(generator)
         # 依赖清理 - 清理掉当前协程的依赖存储
-        green_thread_local._local__greens = {}
+        self._cleanup_dependency()
         # 垃圾回收 - 防止大量请求时的内存溢出
         self.worker_threads.pop(gt, None)
+
+    def _cleanup_dependency(self) -> None:
+        """ 依赖清理 - 清理协程的存储 """
+        for d in self.no_skip_inject_dependencies: green_thread_local.__delattr__(d.object_name)
 
     def _replace_dependency(self, context: WorkerContext) -> None:
         """ 依赖注入 - 替换原依赖对象

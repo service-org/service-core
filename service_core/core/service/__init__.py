@@ -34,18 +34,6 @@ class Service(object):
         """
         pass
 
-    def __getattribute__(self, item: t.Text) -> t.Any:
-        """ 协程安全的获取依赖对象
-
-        解决协程竞争覆盖苏醒值问题
-
-        @param item: 属性名称
-        @return: t.Ant
-        """
-        if hasattr(green_thread_local, item):
-            return getattr(green_thread_local, item)
-        return object.__getattribute__(self, item)
-
     def include_router(self, router: ApiRouter) -> None:
         """ 加载汇总多文件中的路由
 
@@ -70,3 +58,17 @@ class Service(object):
         # 自动收集当前服务类下的所有可调用对象的entrypoints作为视图函数
         all_members = getmembers(self.__class__, is_entrypoint)
         return {name: obj for name, obj in all_members}
+
+    def __getattribute__(self, item: t.Text) -> t.Any:
+        """ 协程安全的获取依赖对象
+
+        解决协程切换覆盖依赖对象问题
+
+        @param item: 属性名称
+        @return: t.Ant
+        """
+        from service_core.core.checking import is_dependency
+
+        # 自动将依赖对象替换为协程安全的依赖对象防止不同协程并发写服务依赖
+        gtl, obj = green_thread_local, object.__getattribute__(self, item)
+        return getattr(gtl, item) if is_dependency(obj) and hasattr(gtl, item) else obj
