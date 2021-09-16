@@ -12,6 +12,7 @@ import logging
 import eventlet
 import typing as t
 
+from functools import partial
 from logging import getLogger
 from eventlet.event import Event
 from greenlet import GreenletExit
@@ -280,7 +281,8 @@ class ServiceContainer(object):
 
     def _cleanup_dependency(self) -> None:
         """ 依赖清理 - 清理协程的存储 """
-        for d in self.no_skip_inject_dependencies: green_thread_local.__delattr__(d.object_name)
+        cleanup_attr = green_thread_local.__delattr__
+        for d in self.no_skip_inject_dependencies: AsFriendlyFunc(partial(cleanup_attr, d.object_name))()
 
     def _replace_dependency(self, context: WorkerContext) -> None:
         """ 依赖注入 - 替换原依赖对象
