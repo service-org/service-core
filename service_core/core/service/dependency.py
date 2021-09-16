@@ -14,7 +14,7 @@ from .extension import Extension
 class Dependency(Extension):
     """ 依赖扩展基类 """
 
-    def __init__(self, *args: t.Text, **kwargs: t.Text) -> None:
+    def __init__(self, *args: t.Text, **kwargs: t.Any) -> None:
         """ 初始化实例
 
         @param skip_inject: 跳过注入

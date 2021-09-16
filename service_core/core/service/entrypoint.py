@@ -14,7 +14,7 @@ from .extension import Extension
 class Entrypoint(Extension):
     """ 入口扩展基类 """
 
-    def __init__(self, *args: t.Text, **kwargs: t.Text) -> None:
+    def __init__(self, *args: t.Text, **kwargs: t.Any) -> None:
         """ 初始化实例
 
         @param exec_timing: 执行限时
