@@ -4,11 +4,23 @@
 
 from __future__ import annotations
 
+import inspect
 import typing as t
 
 from .service import Service
+from .endpoint import Endpoint
 from .service.extension import Extension
 from .service.dependency import Dependency
+
+
+def is_endpoint(obj: t.Any) -> bool:
+    """ 是否为约定端点实例
+
+    @param obj: 任意对象
+    @return: bool
+    """
+    is_cls = inspect.isclass(obj)
+    return is_cls and issubclass(obj, Endpoint)
 
 
 def is_extension(obj: t.Any) -> bool:

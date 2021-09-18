@@ -8,6 +8,7 @@ import typing as t
 
 from functools import partial
 from logging import getLogger
+from inspect import getmembers
 from service_core.core.as_helper import get_fun_dotted_path
 
 logger = getLogger(__name__)
@@ -50,26 +51,29 @@ class ApiRouter(object):
         @return: t.Callable[..., t.Callable[..., t.Any]]
         """
 
-        def handle(cls_args: t.Tuple, cls_kwargs: t.Dict, func: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+        def handle(cls_args: t.Tuple, cls_kwargs: t.Dict, func: t.Callable[..., t.Any]) -> None:
             """ 装饰器注册
 
             @param cls_args  : 命名参数
             @param cls_kwargs: 位置参数
-            @param func: 被修饰的函数
-            @return: t.Callable[..., t.Any]
+            @param func: 修饰的函数或类
+            @return: None
             """
+            from .checking import is_endpoint
             from .checking import is_entrypoint
 
-            if not is_entrypoint(func):
+            if is_endpoint(func):
+                inst = func()
+                data = {f'{self.name}.{func.__name__}.{e[0]}': e[1] for e in getmembers(inst, is_entrypoint)}
+                self.data.update(data)
+            elif is_entrypoint(func):
+                ident = f'{self.name}.{func.__name__}'
+                self.data[ident] = func
+            else:
                 dotted_path = get_fun_dotted_path(func)
                 ident = f'{dotted_path}.{func.__name__}'
                 warns = f'{ident} no entrypoints found'
                 logger.warning(warns)
-                return func
-            else:
-                ident = f'{self.name}.{func.__name__}'
-                self.data[ident] = func
-                return func
 
         # 支持带参数和不带参数的入口装饰用法
         no_params = len(args) == 1 and callable(args[0])
