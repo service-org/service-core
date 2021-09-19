@@ -8,7 +8,6 @@ import typing as t
 
 from functools import partial
 from logging import getLogger
-from inspect import getmembers
 from service_core.core.as_helper import get_fun_dotted_path
 
 logger = getLogger(__name__)
@@ -63,8 +62,7 @@ class ApiRouter(object):
             from .checking import is_entrypoint
 
             if is_endpoint(func):
-                inst = func()
-                data = {f'{self.name}.{func.__name__}.{e[0]}': e[1] for e in getmembers(inst, is_entrypoint)}
+                data = func().router_mapping
                 self.data.update(data)
             elif is_entrypoint(func):
                 ident = f'{self.name}.{func.__name__}'

@@ -47,15 +47,15 @@ class Service(object):
 
     @AsLazyProperty
     def router_mapping(self) -> t.Dict[t.Text, t.Callable[..., t.Any]]:
-        """ 收集当前服务实例下路由
+        """ 收集当前服务类下的路由
 
         主要用于创建小型单文件应用
 
-        @return: t.Dict[t.Text, t.Callable]
+        @return: t.Dict[t.Text, t.Callable[..., t.Any]]
         """
         from service_core.core.checking import is_entrypoint
 
-        # 自动收集当前服务类下的所有可调用对象的entrypoints作为视图函数
+        # 自动收集端点类下的所有存在entrypoints的可调用对象作为视图函数
         all_members = getmembers(self.__class__, is_entrypoint)
         return {name: obj for name, obj in all_members}
 
