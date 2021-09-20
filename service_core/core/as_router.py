@@ -62,7 +62,7 @@ class ApiRouter(object):
             from .checking import is_entrypoint
 
             if is_endpoint(func):
-                data = func().router_mapping
+                data = func().router_mapping()
                 self.data.update(data)
             elif is_entrypoint(func):
                 ident = f'{self.name}.{func.__name__}'

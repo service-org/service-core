@@ -8,7 +8,6 @@ import typing as t
 
 from inspect import getmembers
 from service_core.core.as_router import ApiRouter
-from service_core.core.decorator import AsLazyProperty
 from service_core.core.storage import green_thread_local
 from service_core.core.as_helper import get_accessible_host
 from service_core.core.as_helper import get_accessible_port
@@ -32,7 +31,10 @@ class Service(object):
         @param args  : 位置参数
         @param kwargs: 命名参数
         """
-        pass
+        from service_core.core.checking import is_entrypoint
+
+        all_members = getmembers(self, is_entrypoint)
+        self.router_mapping = {name: obj for name, obj in all_members}
 
     def include_router(self, router: ApiRouter) -> None:
         """ 加载汇总多文件中的路由
@@ -44,20 +46,6 @@ class Service(object):
         """
         # 将子路由由下而上自动收集的路由信息注入到当前router_mapping
         self.router_mapping.update(router.data)
-
-    @AsLazyProperty
-    def router_mapping(self) -> t.Dict[t.Text, t.Callable[..., t.Any]]:
-        """ 收集当前服务类下的路由
-
-        主要用于创建小型单文件应用
-
-        @return: t.Dict[t.Text, t.Callable[..., t.Any]]
-        """
-        from service_core.core.checking import is_entrypoint
-
-        # 自动收集端点类下的所有存在entrypoints的可调用对象作为视图函数
-        all_members = getmembers(self.__class__, is_entrypoint)
-        return {name: obj for name, obj in all_members}
 
     def __getattribute__(self, item: t.Text) -> t.Any:
         """ 协程安全的获取依赖对象
