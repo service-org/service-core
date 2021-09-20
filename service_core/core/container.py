@@ -97,7 +97,7 @@ class ServiceContainer(object):
 
         @return: t.Set[Dependency]
         """
-        return {provider for provider in self.dependencies if not provider.skip_inject}
+        return {provider for provider in self.dependencies if not provider.skip_loaded and not provider.skip_inject}
 
     def _kill_worker_threads(self) -> None:
         """ 协程管理 - 杀掉工作协程
@@ -290,7 +290,14 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        for d in self.no_skip_inject_dependencies: setattr(green_thread_local, d.object_name, d.get_instance(context))
+        once_inject_dependencies = set()
+        for d in self.no_skip_inject_dependencies:
+            if d.once_inject:
+                once_inject_dependencies.add(d)
+                setattr(self.service, d.object_name, d.get_instance(context))
+            else:
+                setattr(green_thread_local, d.object_name, d.get_instance(context))
+        if once_inject_dependencies: self.no_skip_inject_dependencies -= once_inject_dependencies
 
     def _call_worker_setups(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用载入方法
