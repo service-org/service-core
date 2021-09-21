@@ -297,7 +297,8 @@ class ServiceContainer(object):
                 setattr(self.service, d.object_name, d.get_instance(context))
             else:
                 setattr(green_thread_local, d.object_name, d.get_instance(context))
-        if once_inject_dependencies: self.no_skip_inject_dependencies -= once_inject_dependencies
+        if once_inject_dependencies:
+            self.no_skip_inject_dependencies -= once_inject_dependencies
 
     def _call_worker_setups(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用载入方法
@@ -342,15 +343,14 @@ class ServiceContainer(object):
         entrypoint = context.original_entrypoint
         method_name = entrypoint.object_name
         kwargs = context.original_kwargs
+        # 从router_mapping查找entrypoint名称对应目标视图~
+        method = self.service.router_mapping[method_name]
         # 判断是服务对象本身的方法还是来自于路由自动收集的方法?
-        if hasattr(self.service, method_name):
-            args = context.original_args
-            # 从当前服务对象中去查找entrypoint名称对应视图
-            method = getattr(self.service, method_name)
-        else:
-            args = (self.service, *context.original_args)
-            # 从router_mapping查找entrypoint名称对应视图
-            method = self.service.router_mapping[method_name]
+        args = context.original_args if hasattr(
+            self.service, method_name
+        ) else (
+            self.service, *context.original_args
+        )
         return method, args, kwargs
 
     def _run_timing_method(
