@@ -28,7 +28,6 @@ from .checking import is_dependency
 from .spawning import SpawningProxy
 from .decorator import AsFriendlyFunc
 from .decorator import AsLazyProperty
-from .storage import green_thread_local
 from .as_logger import as_timing_logger
 from .service.extension import Extension
 from .service.dependency import Dependency
@@ -273,8 +272,6 @@ class ServiceContainer(object):
         """
         # 耗时记录 - 等待到执行完毕时输出耗时
         next(generator)
-        # ctx清理 - 清理掉当前协程上下文对象
-        green_thread_local.__delattr__('context')
         # 垃圾回收 - 防止大量请求时的内存溢出
         self.worker_threads.pop(gt, None)
 
@@ -385,8 +382,6 @@ class ServiceContainer(object):
         results, excinfo = None, None
         self._replace_dependency(context)
         self._call_worker_setups(context)
-        # 记录当前协程的上下文对象,主要用于在其它地方引用
-        setattr(green_thread_local, 'context', context)
         method, args, kwargs = self._get_target_method(context)
         # 针对每个入口扩展都可以设置它执行超时时间防止阻塞
         timeout = context.original_entrypoint.exec_timing
@@ -437,6 +432,7 @@ class ServiceContainer(object):
         next(generator)
         context = WorkerContext(self.service, entrypoint, args=args, kwargs=kwargs, context=context)
         green_thread = self.worker_pool.spawn(self.start_worker_thread, context)
+        green_thread.__dict__['context'] = context
         self.worker_threads[green_thread] = tid
         green_thread.link(self._link_worker_results, generator)
         return green_thread
