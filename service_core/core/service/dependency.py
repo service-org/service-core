@@ -18,7 +18,6 @@ class Dependency(Extension):
         """ 初始化实例
 
         @param skip_inject: 跳过注入
-        @param once_inject: 注入一次
         @param skip_loaded: 跳过加载
         """
         super(Dependency, self).__init__(*args, **kwargs)
