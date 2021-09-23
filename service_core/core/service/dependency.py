@@ -23,7 +23,6 @@ class Dependency(Extension):
         """
         super(Dependency, self).__init__(*args, **kwargs)
         self.skip_inject = kwargs.get('skip_inject', False)
-        self.once_inject = kwargs.get('once_inject', True)
         self.skip_loaded = kwargs.get('skip_loaded', False)
 
     def __repr__(self) -> t.Text:

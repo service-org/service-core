@@ -12,7 +12,6 @@ import logging
 import eventlet
 import typing as t
 
-from functools import partial
 from logging import getLogger
 from eventlet.event import Event
 from greenlet import GreenletExit
@@ -20,7 +19,6 @@ from eventlet.greenpool import GreenPool
 from eventlet.greenthread import GreenThread
 from service_core.exception import ReachTiming
 from service_core.constants import WORKERS_CONFIG_KEY
-from service_core.core.storage import green_thread_local
 from service_core.constants import DEFAULT_WORKERS_NUMBER
 
 from .service import Service
@@ -30,6 +28,7 @@ from .checking import is_dependency
 from .spawning import SpawningProxy
 from .decorator import AsFriendlyFunc
 from .decorator import AsLazyProperty
+from .storage import green_thread_local
 from .as_logger import as_timing_logger
 from .service.extension import Extension
 from .service.dependency import Dependency
@@ -97,7 +96,7 @@ class ServiceContainer(object):
 
         @return: t.Set[Dependency]
         """
-        return {provider for provider in self.dependencies if not provider.skip_loaded and not provider.skip_inject}
+        return {provider for provider in self.no_skip_loaded_dependencies if not provider.skip_inject}
 
     def _kill_worker_threads(self) -> None:
         """ 协程管理 - 杀掉工作协程
@@ -274,15 +273,10 @@ class ServiceContainer(object):
         """
         # 耗时记录 - 等待到执行完毕时输出耗时
         next(generator)
-        # 依赖清理 - 清理掉当前协程的依赖存储
-        self._cleanup_dependency()
+        # ctx清理 - 清理掉当前协程上下文对象
+        green_thread_local.__delattr__('context')
         # 垃圾回收 - 防止大量请求时的内存溢出
         self.worker_threads.pop(gt, None)
-
-    def _cleanup_dependency(self) -> None:
-        """ 依赖清理 - 清理协程的存储 """
-        cleanup_attr = green_thread_local.__delattr__
-        for d in self.no_skip_inject_dependencies: AsFriendlyFunc(partial(cleanup_attr, d.object_name))()
 
     def _replace_dependency(self, context: WorkerContext) -> None:
         """ 依赖注入 - 替换原依赖对象
@@ -290,13 +284,12 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
+        # 应避免对每个请求注入所有扩展,因为这个对于有些插件非常耗时
+        if not self.no_skip_inject_dependencies: return
         once_inject_dependencies = set()
         for d in self.no_skip_inject_dependencies:
-            if d.once_inject:
-                once_inject_dependencies.add(d)
-                setattr(self.service, d.object_name, d.get_instance(context))
-            else:
-                setattr(green_thread_local, d.object_name, d.get_instance(context))
+            once_inject_dependencies.add(d)
+            setattr(self.service, d.object_name, d.get_instance(context))
         if once_inject_dependencies:
             self.no_skip_inject_dependencies -= once_inject_dependencies
 
@@ -392,6 +385,8 @@ class ServiceContainer(object):
         results, excinfo = None, None
         self._replace_dependency(context)
         self._call_worker_setups(context)
+        # 记录当前协程的上下文对象,主要用于在其它地方引用
+        setattr(green_thread_local, 'context', context)
         method, args, kwargs = self._get_target_method(context)
         # 针对每个入口扩展都可以设置它执行超时时间防止阻塞
         timeout = context.original_entrypoint.exec_timing
@@ -442,7 +437,6 @@ class ServiceContainer(object):
         next(generator)
         context = WorkerContext(self.service, entrypoint, args=args, kwargs=kwargs, context=context)
         green_thread = self.worker_pool.spawn(self.start_worker_thread, context)
-        green_thread.__dict__['context'] = context
         self.worker_threads[green_thread] = tid
         green_thread.link(self._link_worker_results, generator)
         return green_thread
