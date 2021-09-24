@@ -202,19 +202,19 @@ class ServiceContainer(object):
         @return: None
         """
         timing_logger = as_timing_logger(logger, level=logging.DEBUG)
-        generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} started")
-        next(generator)
-        # 无序加载 - 调用所有入口对象的setup方法
-        SpawningProxy(self.entrypoints).setup()
-        # 无序启动 - 调用所有入口对象的start方法
-        SpawningProxy(self.entrypoints).start()
-        next(generator)
         generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} started")
         next(generator)
         # 无序加载 - 调用所有依赖对象的setup方法
         SpawningProxy(self.no_skip_loaded_dependencies).setup()
         # 无序加载 - 调用所有依赖对象的start方法
         SpawningProxy(self.no_skip_loaded_dependencies).start()
+        next(generator)
+        generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} started")
+        next(generator)
+        # 无序加载 - 调用所有入口对象的setup方法
+        SpawningProxy(self.entrypoints).setup()
+        # 无序启动 - 调用所有入口对象的start方法
+        SpawningProxy(self.entrypoints).start()
         next(generator)
 
     def wait(self) -> None:
@@ -235,17 +235,17 @@ class ServiceContainer(object):
         # 强制关闭 - 分离协程可能死循环无法优雅
         self._kill_splits_threads()
         timing_logger = as_timing_logger(logger, level=logging.DEBUG)
+        generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} stopped")
+        next(generator)
+        # 无序停止 - 调用所有依赖对象的stop方法
+        SpawningProxy(self.no_skip_loaded_dependencies).stop()
+        next(generator)
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} stopped")
         next(generator)
         # 无顺停止 - 调用所有依赖对象的stop方法
         SpawningProxy(self.entrypoints).stop()
         # 优雅停止 - 等待所有工作协程处理完成后
         self.worker_pool.waitall()
-        next(generator)
-        generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} stopped")
-        next(generator)
-        # 无序停止 - 调用所有依赖对象的stop方法
-        SpawningProxy(self.no_skip_loaded_dependencies).stop()
         next(generator)
 
         # 发送信号 - 表示从服务对应的容器已关闭
@@ -259,17 +259,17 @@ class ServiceContainer(object):
         # 强制关闭 - 分离协程可能死循环无法优雅
         self._kill_splits_threads()
         timing_logger = as_timing_logger(logger, level=logging.DEBUG)
+        generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} killed")
+        next(generator)
+        # 无序停止 - 调用所有依赖对象的kill方法
+        SpawningProxy(self.no_skip_loaded_dependencies).kill()
+        next(generator)
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} killed")
         next(generator)
         # 无顺强杀 - 调用所有依赖对象的kill方法
         SpawningProxy(self.entrypoints).kill()
         # 强制杀死 - 不等所有工作协程处理完成后
         self._kill_worker_threads()
-        next(generator)
-        generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} killed")
-        next(generator)
-        # 无序停止 - 调用所有依赖对象的kill方法
-        SpawningProxy(self.no_skip_loaded_dependencies).kill()
         next(generator)
 
     def _link_worker_results(self, gt: GreenThread, generator: t.Generator) -> None:
