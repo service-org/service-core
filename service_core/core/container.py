@@ -61,8 +61,6 @@ class ServiceContainer(object):
         splits_pool_size = config.get(key, default=default)
         self.worker_pool = GreenPool(size=worker_pool_size)
         self.splits_pool = GreenPool(size=splits_pool_size)
-        # 依赖注入 - 强制注入一次
-        for p in self.no_skip_inject_dependencies: setattr(service, p.object_name, p.get_instance())
 
     @AsLazyProperty
     def entrypoints(self) -> t.Set[Entrypoint]:
@@ -210,6 +208,8 @@ class ServiceContainer(object):
         # 无序加载 - 调用所有依赖对象的start方法
         SpawningProxy(self.no_skip_loaded_dependencies).start()
         next(generator)
+        # 依赖注入 - 依赖初始化完毕后尝试自动注入
+        for p in self.no_skip_inject_dependencies: setattr(self.service, p.object_name, p.get_instance())
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} started")
         next(generator)
         # 无序加载 - 调用所有入口对象的setup方法
