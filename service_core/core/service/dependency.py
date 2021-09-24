@@ -18,10 +18,12 @@ class Dependency(Extension):
         """ 初始化实例
 
         @param skip_inject: 跳过注入
+        @param skip_callme: 跳过调用
         @param skip_loaded: 跳过加载
         """
         super(Dependency, self).__init__(*args, **kwargs)
         self.skip_inject = kwargs.get('skip_inject', False)
+        self.skip_callme = kwargs.get('skip_callme', True)
         self.skip_loaded = kwargs.get('skip_loaded', False)
 
     def __repr__(self) -> t.Text:
