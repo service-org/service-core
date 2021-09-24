@@ -61,6 +61,8 @@ class ServiceContainer(object):
         splits_pool_size = config.get(key, default=default)
         self.worker_pool = GreenPool(size=worker_pool_size)
         self.splits_pool = GreenPool(size=splits_pool_size)
+        # 依赖注入 - 强制注入一次
+        for p in self.no_skip_inject_dependencies: setattr(service, p.object_name, p.get_instance())
 
     @AsLazyProperty
     def entrypoints(self) -> t.Set[Entrypoint]:
@@ -103,8 +105,7 @@ class ServiceContainer(object):
 
         @return: t.Set[Dependency]
         """
-        no_skip_callme = lambda provider: not provider.skip_inject and not provider.skip_callme
-        return {provider for provider in self.no_skip_loaded_dependencies if no_skip_callme(provider)}
+        return {provider for provider in self.no_skip_inject_dependencies if not provider.skip_callme}
 
     def _kill_worker_threads(self) -> None:
         """ 协程管理 - 杀掉工作协程
@@ -284,21 +285,6 @@ class ServiceContainer(object):
         # 垃圾回收 - 防止大量请求时的内存溢出
         self.worker_threads.pop(gt, None)
 
-    def _replace_dependency(self, context: WorkerContext) -> None:
-        """ 依赖注入 - 替换原依赖对象
-
-        @param context: 上下文对象
-        @return: None
-        """
-        # 应避免对每个请求注入所有扩展,因为这个对于有些插件非常耗时
-        if not self.no_skip_inject_dependencies: return
-        once_inject_dependencies = set()
-        for d in self.no_skip_inject_dependencies:
-            once_inject_dependencies.add(d)
-            setattr(self.service, d.object_name, d.get_instance(context))
-        if once_inject_dependencies:
-            self.no_skip_inject_dependencies -= once_inject_dependencies
-
     def _call_worker_setups(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用载入方法
 
@@ -389,8 +375,7 @@ class ServiceContainer(object):
         @return: None
         """
         results, excinfo = None, None
-        self._replace_dependency(context)
-        self._call_worker_setups(context)
+        self.no_skip_callme_dependencies and self._call_worker_setups(context)
         method, args, kwargs = self._get_target_method(context)
         # 针对每个入口扩展都可以设置它执行超时时间防止阻塞
         timeout = context.original_entrypoint.exec_timing
@@ -404,13 +389,13 @@ class ServiceContainer(object):
                        f'args={args} kwargs={kwargs}')
             logger.error(message, exc_info=True)
             excinfo = sys.exc_info()
-            self._call_worker_errors(context, excinfo)
+            self.no_skip_callme_dependencies and self._call_worker_errors(context, excinfo)
         finally:
             if excinfo is None:
-                self._call_worker_result(context, results)
-                self._call_worker_finish(context)
+                self.no_skip_callme_dependencies and self._call_worker_result(context, results)
+                self.no_skip_callme_dependencies and self._call_worker_finish(context)
             else:
-                self._call_worker_finish(context)
+                self.no_skip_callme_dependencies and self._call_worker_finish(context)
         return context, results, excinfo
 
     def spawn_worker_thread(

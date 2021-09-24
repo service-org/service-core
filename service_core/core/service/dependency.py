@@ -30,10 +30,9 @@ class Dependency(Extension):
         name = super(Dependency, self).__repr__()
         return f'{self.container.service.name}:{name}'
 
-    def get_instance(self, context: WorkerContext) -> t.Any:
+    def get_instance(self) -> t.Any:
         """ 获取注入对象
 
-        @param context: 上下文对象
         @return: t.Any
         """
         current_instance = self
