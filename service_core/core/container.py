@@ -103,7 +103,8 @@ class ServiceContainer(object):
 
         @return: t.Set[Dependency]
         """
-        return {provider for provider in self.no_skip_loaded_dependencies if not provider.skip_inject and not provider.skip_callme}
+        return {provider for provider in self.no_skip_loaded_dependencies if
+                not provider.skip_inject and not provider.skip_callme}
 
     def _kill_worker_threads(self) -> None:
         """ 协程管理 - 杀掉工作协程
@@ -204,16 +205,16 @@ class ServiceContainer(object):
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} started")
         next(generator)
         # 无序加载 - 调用所有入口对象的setup方法
-        for o in self.entrypoints: o.setup()
+        SpawningProxy(self.entrypoints).setup()
         # 无序启动 - 调用所有入口对象的start方法
-        for o in self.entrypoints: o.start()
+        SpawningProxy(self.entrypoints).start()
         next(generator)
         generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} started")
         next(generator)
         # 无序加载 - 调用所有依赖对象的setup方法
-        for o in self.no_skip_loaded_dependencies: o.setup()
+        SpawningProxy(self.no_skip_loaded_dependencies).setup()
         # 无序加载 - 调用所有依赖对象的start方法
-        for o in self.no_skip_loaded_dependencies: o.start()
+        SpawningProxy(self.no_skip_loaded_dependencies).start()
         next(generator)
 
     def wait(self) -> None:
@@ -237,14 +238,14 @@ class ServiceContainer(object):
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} stopped")
         next(generator)
         # 无顺停止 - 调用所有依赖对象的stop方法
-        for o in self.entrypoints: o.stop()
+        SpawningProxy(self.entrypoints).stop()
         # 优雅停止 - 等待所有工作协程处理完成后
         self.worker_pool.waitall()
         next(generator)
         generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} stopped")
         next(generator)
         # 无序停止 - 调用所有依赖对象的stop方法
-        for o in self.no_skip_loaded_dependencies: o.stop()
+        SpawningProxy(self.no_skip_loaded_dependencies).stop()
         next(generator)
 
         # 发送信号 - 表示从服务对应的容器已关闭
@@ -261,14 +262,14 @@ class ServiceContainer(object):
         generator = timing_logger(f"service {self.service.name}'s entrypoints {self._all_entrypoint_strs} killed")
         next(generator)
         # 无顺强杀 - 调用所有依赖对象的kill方法
-        for o in self.entrypoints: o.kill()
+        SpawningProxy(self.entrypoints).kill()
         # 强制杀死 - 不等所有工作协程处理完成后
         self._kill_worker_threads()
         next(generator)
         generator = timing_logger(f"service {self.service.name}'s dependencies {self._all_dependency_strs} killed")
         next(generator)
         # 无序停止 - 调用所有依赖对象的kill方法
-        for o in self.no_skip_loaded_dependencies: o.kill()
+        SpawningProxy(self.no_skip_loaded_dependencies).kill()
         next(generator)
 
     def _link_worker_results(self, gt: GreenThread, generator: t.Generator) -> None:
@@ -304,7 +305,7 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        for o in self.no_skip_callme_dependencies: o.worker_setups(context)
+        SpawningProxy(self.no_skip_callme_dependencies).worker_setups(context)
 
     def _call_worker_result(self, context: WorkerContext, results: t.Any) -> None:
         """ 工作协程 - 调用结果方法
@@ -313,7 +314,7 @@ class ServiceContainer(object):
         @param results: 执行结果
         @return: None
         """
-        for o in self.no_skip_callme_dependencies: o.worker_result(context, results)
+        SpawningProxy(self.no_skip_callme_dependencies).worker_result(context, results)
 
     def _call_worker_errors(self, context: WorkerContext, excinfo: t.Tuple) -> None:
         """ 工作协程 - 调用异常方法
@@ -322,7 +323,7 @@ class ServiceContainer(object):
         @param excinfo: 执行异常
         @return: None
         """
-        for o in self.no_skip_callme_dependencies: o.worker_errors(context, excinfo)
+        SpawningProxy(self.no_skip_callme_dependencies).worker_errors(context, excinfo)
 
     def _call_worker_finish(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用完成方法
@@ -330,7 +331,7 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        for o in self.no_skip_callme_dependencies: o.worker_finish(context)
+        SpawningProxy(self.no_skip_callme_dependencies).worker_finish(context)
 
     def _get_target_method(self, context: WorkerContext) -> t.Tuple[t.Callable[..., t.Any], t.Tuple, t.Dict]:
         """ 获取目标执行方法以及参数
