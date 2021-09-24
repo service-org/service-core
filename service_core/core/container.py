@@ -103,8 +103,8 @@ class ServiceContainer(object):
 
         @return: t.Set[Dependency]
         """
-        return {provider for provider in self.no_skip_loaded_dependencies if
-                not provider.skip_inject and not provider.skip_callme}
+        no_skip_callme = lambda provider: not provider.skip_inject and not provider.skip_callme
+        return {provider for provider in self.no_skip_loaded_dependencies if no_skip_callme(provider)}
 
     def _kill_worker_threads(self) -> None:
         """ 协程管理 - 杀掉工作协程
