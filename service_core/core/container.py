@@ -291,7 +291,7 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        SpawningProxy(self.no_skip_callme_dependencies).worker_setups(context)
+        for p in self.no_skip_callme_dependencies: p.worker_setups(context)
 
     def _call_worker_result(self, context: WorkerContext, results: t.Any) -> None:
         """ 工作协程 - 调用结果方法
@@ -300,7 +300,7 @@ class ServiceContainer(object):
         @param results: 执行结果
         @return: None
         """
-        SpawningProxy(self.no_skip_callme_dependencies).worker_result(context, results)
+        for p in self.no_skip_callme_dependencies: p.worker_result(context, results)
 
     def _call_worker_errors(self, context: WorkerContext, excinfo: t.Tuple) -> None:
         """ 工作协程 - 调用异常方法
@@ -309,7 +309,7 @@ class ServiceContainer(object):
         @param excinfo: 执行异常
         @return: None
         """
-        SpawningProxy(self.no_skip_callme_dependencies).worker_errors(context, excinfo)
+        for p in self.no_skip_callme_dependencies: p.worker_errors(context, excinfo)
 
     def _call_worker_finish(self, context: WorkerContext) -> None:
         """ 工作协程 - 调用完成方法
@@ -317,7 +317,7 @@ class ServiceContainer(object):
         @param context: 上下文对象
         @return: None
         """
-        SpawningProxy(self.no_skip_callme_dependencies).worker_finish(context)
+        for p in self.no_skip_callme_dependencies: p.worker_finish(context)
 
     def _get_target_method(self, context: WorkerContext) -> t.Tuple[t.Callable[..., t.Any], t.Tuple, t.Dict]:
         """ 获取目标执行方法以及参数
