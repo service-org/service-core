@@ -21,5 +21,11 @@ class Endpoint(object):
         """
         from .checking import is_entrypoint
 
+        all_mapping = {}
         all_members = getmembers(self, is_entrypoint)
-        return {name: obj for name, obj in all_members}
+        class_name = self.__class__.__name__
+        for method_name, method in all_members:
+            module_name = method.__module__.rsplit('.', 1)[-1]
+            name = f'{module_name}.{class_name}.{method_name}'
+            all_mapping.update({name: method})
+        return all_mapping
