@@ -22,6 +22,8 @@ def gen_exception_description(exception: Exception) -> t.Dict:
     exc_errs = get_obj_string_repr(exception)
     # 用于定位服务调用链异常源头
     original = getattr(exception, 'original', '')
+    # 防止传入进来无法序列化对象
+    original = get_obj_string_repr(original)
     return {
         'original': original,
         'exc_type': exc_type,
