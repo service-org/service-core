@@ -18,10 +18,18 @@ class RemoteError(Exception):
         """
         self.errormsg = errormsg or ''
         self.original = original or ''
-        super(RemoteError, self).__init__(errormsg)
+        error_message = self.gen_message()
+        super(RemoteError, self).__init__(error_message)
+
+    def gen_message(self) -> t.Text:
+        """ 生成异常信息
+
+        @return: t.Text
+        """
+        return f'{self.original} - {self.errormsg}' if self.original else self.errormsg
 
     def __repr__(self) -> t.Text:
-        return f'{self.original} - {self.errormsg}' if self.original else self.errormsg
+        return self.gen_message()
 
 
 class ReachTiming(RemoteError):
