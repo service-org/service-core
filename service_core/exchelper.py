@@ -25,10 +25,10 @@ def gen_exception_description(exception: Exception) -> t.Dict:
     # 防止传入进来无法序列化对象
     original = get_obj_string_repr(original)
     return {
-        'original': original,
         'exc_type': exc_type,
         'exc_path': exc_path,
         'exc_errs': exc_errs,
+        'original': original,
     }
 
 
@@ -38,8 +38,8 @@ def gen_exception_from_result(dict_data: t.Dict) -> Exception:
     @param dict_data: 字典数据
     @return: Exception
     """
-    exc_original = dict_data['original']
     exc_cls_name = dict_data['exc_type']
     exc_cls_type = type(exc_cls_name, (RemoteError,), {})
     exc_cls_errs = dict_data['exc_errs']
-    return exc_cls_type(exc_cls_errs, original=exc_original)
+    exc_original = dict_data['original']
+    return exc_cls_type(errormsg=exc_cls_errs, original=exc_original)
